@@ -1035,7 +1035,7 @@ void display_DIR(DIR *ret_opendir, int filecolor)
         }
     }
     rewinddir(ret_opendir); //回到最开始
-    puts(" \t");
+    printf(" \t");
 }
 
  
