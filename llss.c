@@ -1,14 +1,14 @@
-/*
+ /*
 1)主要函数
 void list_dir(char *pathname, int param);
 void display_DIR(DIR *ret_opendir, int filecolor);
-void my_err(const char *err_string, int line);
+void ls_err(const char *err_string, int line);
 void display_attribute(struct stat buf, char *name, int filecolor)
 void display_single(char *name, int filecolor)
 void display_st_ino(struct stat buf, char *name, int filecolor)
 void display(int flag, char *pathname)
 void display_dir(int flag_param, char *path)
-void display_RR(int flag_param, char *path)
+void display_R(int flag_param, char *path)
 void list_dir(char *pathname, int param)
 void display_DIR(DIR *ret_opendir, int filecolor)
  
@@ -50,7 +50,7 @@ c>:struct group *grp;//从该结构体重获取文件所有者所属组的组名
 -R :递归处理，将制定目录下的所有文件以及子目录都处理
 -i :显示文件的节点号
 -s :显示文件和目录的大小，以区快为单位
--t :显示用文件和目录的更改时间
+-t :显示用文件和目录的更改时间(因为都需要排序，所以把 R r t放在一起实现)
 */
 
 #include <stdio.h>
@@ -74,7 +74,7 @@ c>:struct group *grp;//从该结构体重获取文件所有者所属组的组名
 #define PARAM_I 4    //i
 #define PARAM_r 8    //r
 #define PARAM_T 16   //t
-#define PARAM_RR 32  //R
+#define PARAM_R 32   //R
 #define PARAM_S 64   //s
 #define MAXROWLEN 80 // 一行显示的最多的字符数
 
@@ -86,7 +86,7 @@ void display_single(char *name, int filecolor);
 void display_st_ino(struct stat buf, char *name, int filecolor);
 void display(int flag, char *pathname);
 void display_dir(int flag_param, char *path);
-void display_RR(int flag_param, char *path);
+void display_R(int flag_param, char *path);
 void list_dir(char *pathname, int param);
 void display_DIR(DIR *ret_opendir, int filecolor);
  
@@ -122,64 +122,72 @@ int main(int argc, char *argv[])
         }
     }
 
-    //检查上面提取的选项是否合法，用或运算记录参数，以备后用，最后为选项数组的末尾元素赋‘/0’
+    //用或运算记录参数，最后为选项数组的末尾元素赋‘/0’
+    
     for (i = 0; i < j; i++)
     {
         if (param[i] == 'a')
         {
             flag_param |= PARAM_A;
         }
+
         else if (param[i] == 'l')
         {
             flag_param |= PARAM_L;
         }
+
         else if (param[i] == 'R')
         {
-            flag_param |= PARAM_RR;
+            flag_param |= PARAM_R;
         }
+
         else if (param[i] == 'r')
         {
             flag_param |= PARAM_r;
         }
+
         else if (param[i] == 't')
         {
             flag_param |= PARAM_T;
         }
+
         else if (param[i] == 'i')
         {
             flag_param |= PARAM_I;
         }
+
         else if (param[i] == 's')
         {
             flag_param |= PARAM_S;
         }
+
         else
         {
-            printf("ls:-- %s", param[i]);
+            printf("ls:  %s", param[i]);
             exit(1);
         }
     }
 
-    if (flag_param & PARAM_RR)
+    if (flag_param & PARAM_R)
     {
-        flag_param -= PARAM_RR;
+        flag_param -= PARAM_R;
         if (num + 1 == argc)
         {
             strcpy(path, "./"); //./是当前目录
             path[2] = '\0';
-            display_RR(flag_param, path);
+            display_R(flag_param, path);
             return 0;
         }
 
-        /*
+/*
 如果命令行参数包括目录或者文件名，需要检查参数中的目录或者文件是否存在
 可以利用stat族函数来获取文件的属性，完成上面的检查
 stat族函数通常有两个参数：文件路径/文件描述符，struct stat *buf 类型的结构体
 如果操作成功啦，那么buf就会保存文件的属性
 如果可以的话，利用宏S_ISDIR(buf.st_mode),判断此文件是否是目录文件
-如果是目录文件，就可进入Demonstrate_dir函数，要不然的话进去Demonstrate函数
-Demonstrate_dir函数是获取path目录下所有文件的完整路径名，再使每个文件执行Demonstrate函数
-所以的话，如果参数中指定的文件名，就可以跳过Demonstrate_dir函数，直接进入Demonstrate函数
+如果是目录文件，就可进入display_dir函数，要不然的话进去display函数
+display_dir函数是获取path目录下所有文件的完整路径名，再使每个文件执行display函数
+所以的话，如果参数中指定的文件名，就可以跳过display_dir函数，直接进入display函数
 */
 
         i = 1;
@@ -207,7 +215,7 @@ Demonstrate_dir函数是获取path目录下所有文件的完整路径名，再�
                     }
                     else
                         path[strlen(argv[i])] = '\0';
-                    display_RR(flag_param, path);
+                    display_R(flag_param, path);
                 }
             }
         } while (i < argc);
@@ -486,13 +494,13 @@ void display_st_ino(struct stat buf, char *name, int filecolor)
         printf("\n");
     }
     printf("%d ", buf.st_ino);
-    sprintf(colorname, "\033[%dm%s\033[0m", filecolor, name);
+    sprintf(colorname, "\035[%dm%s\035[0m", filecolor, name);
     printf(" %-s", colorname);
     //补够空格
-    for (i = 0; i < len + 5; i++)
+    for (i = 0; i <=len + 5; i++)
         printf(" ");
-    g_leave_len = g_leave_len - 45;
-    if (g_leave_len < 45)
+    g_leave_len = g_leave_len - 35;
+    if (g_leave_len < 35)
     {
         printf("\n");
         g_leave_len = MAXROWLEN;
@@ -547,6 +555,7 @@ void display(int flag, char *pathname)
     }
     else if (S_ISFIFO(buf.st_mode))
     {
+        filecolor = 35;
     }
     else if (S_ISSOCK(buf.st_mode))
     {
@@ -559,6 +568,8 @@ void display(int flag, char *pathname)
         filecolor = 32;
     }
     //记得在前面加关于颜色的处理
+
+
     switch (flag)
     {
     case PARAM_NONE: //没有-l和-a选项
@@ -593,20 +604,20 @@ void display(int flag, char *pathname)
         }
         break;
 
-    case PARAM_A + PARAM_L: //同时有-a和-l选项的情况
+    case PARAM_A | PARAM_L: //同时有-a和-l选项的情况
         display_attribute(buf, name, filecolor);
         break;
 
-    case PARAM_A + PARAM_I:
+    case PARAM_A | PARAM_I:
         display_st_ino(buf, name, filecolor);
         break;
 
-    case PARAM_A + PARAM_S:
+    case PARAM_A | PARAM_S:
         printf("%2d  ", buf.st_blocks / 2);
         display_single(name, filecolor);
         break;
 
-    case PARAM_L + PARAM_S:
+    case PARAM_L | PARAM_S:
         if (name[0] != '.')
         {
             printf("%d  ", buf.st_blocks / 2);
@@ -614,7 +625,7 @@ void display(int flag, char *pathname)
         }
         break;
 
-    case PARAM_L + PARAM_I:
+    case PARAM_L | PARAM_I:
         if (name[0] != '.')
         {
             printf("%d ", buf.st_ino);
@@ -622,7 +633,7 @@ void display(int flag, char *pathname)
         }
         break;
 
-    case PARAM_I + PARAM_S:
+    case PARAM_I | PARAM_S:
         if (name[0] != '.')
         {
             printf("%2d  ", buf.st_ino);
@@ -631,19 +642,19 @@ void display(int flag, char *pathname)
         }
         break;
 
-    case PARAM_A + PARAM_L + PARAM_S:
+    case PARAM_A | PARAM_L | PARAM_S:
         printf("%d  ", buf.st_blocks / 2);
         display_attribute(buf, name, filecolor);
 
         break;
 
-    case PARAM_A + PARAM_I + PARAM_S:
+    case PARAM_A | PARAM_I | PARAM_S:
         printf("%d  ", buf.st_ino);
         printf("%2d  ", buf.st_blocks / 2);
         display_single(name, filecolor);
         break;
 
-    case PARAM_L + PARAM_I + PARAM_S:
+    case PARAM_L | PARAM_I | PARAM_S:
         if (name[0] != '.')
         {
             printf("%d\t", buf.st_ino);
@@ -651,12 +662,12 @@ void display(int flag, char *pathname)
             display_attribute(buf, name, filecolor);
         }
         break;
-    case PARAM_A + PARAM_L + PARAM_I:
+    case PARAM_A | PARAM_L | PARAM_I:
         printf("%d ", buf.st_ino);
         display_attribute(buf, name, filecolor);
         break;
 
-    case PARAM_A + PARAM_I + PARAM_L + PARAM_S:
+    case PARAM_A | PARAM_I | PARAM_L | PARAM_S:
         printf("%d  ", buf.st_ino);
         printf("%d  ", buf.st_blocks / 2);
         display_attribute(buf, name, filecolor);
@@ -672,6 +683,7 @@ void display(int flag, char *pathname)
         break;
     }
 }
+
 
 //为了显示目录下的文件做准备
 void display_dir(int flag_param, char *path)
@@ -695,6 +707,7 @@ void display_dir(int flag_param, char *path)
         ls_err("oppendir", __LINE__);
         return;
     }
+
     //解析文件个数，及文件名的最长值
     while ((ptr = readdir(dir)) != NULL)
     {
@@ -725,15 +738,16 @@ void display_dir(int flag_param, char *path)
     }
 
     closedir(dir);
-    char **filename = (char **)malloc(sizeof(char *) * 256);//申请内存
-    long **filetime = (long **)malloc(sizeof(long *) * 256);
+
+    char **filename = (char **)malloc(sizeof(char *) * 256*256*256);//申请内存
+    long **filetime = (long **)malloc(sizeof(long *) * 256*256*256);
     len = strlen(path);
     dir = opendir(path);
 
     //得到该目录下的所有文件的路径
     for (i = 0; i < count; i++)
     {
-        filename[i] = (char *)malloc(sizeof(char) * 1000);
+        filename[i] = (char *)malloc(sizeof(char) * 1000*1000*1000);
         ptr = readdir(dir);
         if (ptr == NULL)
         {
@@ -745,7 +759,6 @@ void display_dir(int flag_param, char *path)
         filename[i][len + strlen(ptr->d_name)] = '\0';
     }
     closedir(dir);
-
     //插入排序
     if (flag_param & PARAM_T) //根据时间排序
     {
@@ -833,7 +846,7 @@ void display_dir(int flag_param, char *path)
 }
 
 /* 递归输出-R*/
-void display_RR(int flag_param, char *path)
+void display_R(int flag_param, char *path)
 {
     DIR *dir;
     struct dirent *ptr;
@@ -841,16 +854,31 @@ void display_RR(int flag_param, char *path)
     int filecolor;
     int y = 0;
     int flag_param_temp;
-    char filenames[256][PATH_MAX + 1], temp[PATH_MAX + 1];
+     char filenames[256][PATH_MAX + 1], temp[PATH_MAX+1];
+     char muluname[256][PATH_MAX +1];
+    /*char temp[PATH_MAX + 1];
     char muluname[256][PATH_MAX + 1];
-    long filetime[256][1];
+    
+    char ** filenames;
+
+    long long int a ;
+    long long int row= 51200;
+    long long int colum =51200;
+    filenames =(char**)malloc(sizeof(char*)*row*row);
+    for(a=0;a<row;a++)
+    {
+        filenames[a]=(char*)malloc(sizeof(char)*colum *colum);
+    }
+    */
+    long long filetime[256][1];
     long long t;
     struct stat buf;
     struct stat name;
     flag_param_temp = flag_param;
 
+    
     //获取该目录下文件总数和最长的文件名
-    dir = opendir(path);
+    dir = opendir(path); 
     if (dir == NULL)
     {
         ls_err("opendir", __LINE__);
@@ -862,9 +890,9 @@ void display_RR(int flag_param, char *path)
         count++;
     }
     closedir(dir);
-    if (count > 256)
-        ls_err(" 文件过多", __LINE__);
-
+    //if (count > 256)
+      //  ls_err(" 文件太多", __LINE__);
+    
     int i, j, len = strlen(path);
 
     //获取该目录下所有的文件名
@@ -881,6 +909,8 @@ void display_RR(int flag_param, char *path)
         strcat(filenames[i], ptr->d_name);
         filenames[i][len + strlen(ptr->d_name)] = '\0';
     }
+
+
     //使用冒泡法对文件名进行排序，排序后文件名按照字母顺序存储于filenames
     if (flag_param & PARAM_T)
     {
