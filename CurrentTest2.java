@@ -1,3 +1,4 @@
+/*
 public class CurrentTest2 {
     public static void main(String[] args){
         Window t1 = new Window();
@@ -38,3 +39,5 @@ class Window extends Thread{
         }
     }
 }
+
+ */
