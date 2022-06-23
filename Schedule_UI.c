@@ -127,7 +127,7 @@ switch (choice) {
 		}
 	} while (choice != 0);
 	
-	//�ͷ������ռ�
+	
     system("clear");
 	List_Destroy(head, schedule_node_t);//链表销毁
 }
@@ -214,6 +214,7 @@ int Schedule_UI_Add(int play_id){
 		while (getchar() != '\n');
 		setbuf(stdin,NULL);
 		scanf("%c", &choice);
+
 	} while ('a' == choice || 'A' == choice);
 	system("clear");
 	return newRecCount;
@@ -229,7 +230,7 @@ int Schedule_UI_Modify(int id){
 	schedule_list_t list;
 	int seatcount;
 
-	/*Load record*/
+	 
 	if (!Schedule_Srv_FetchByID(id, &rec)) {
 		printf("该演出计划不存在!\n按 [Enter] 返回上层!\n");
 		setbuf(stdin,NULL);
